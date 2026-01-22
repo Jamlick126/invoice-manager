@@ -7,6 +7,7 @@ const MENU_ITEMS = [
   { id: '1', title: 'Invoices', icon: 'document-text-outline', color: '#3b82f6', route: '/invoices' },
   { id: '2', title: 'Payments', icon: 'cash-outline', color: '#10b981', route: '/payments' },
   { id: '3', title: 'Expenses', icon: 'calculator-outline', color: '#8b5cf6', route: '/expenses' },
+  { id: '4', title: 'Products', icon: 'albums-outline', color: '#aef65c', route: '/products' },
 ]
 
 export default function Dashboard() {
