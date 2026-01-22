@@ -6,9 +6,13 @@ export const useStore = create((set) => ({
     products:[],
 
     addInvoice: (newInvoice) => set((state) => ({
-        invoices:[...state.invoices, { ...invoices, newInvoice}]
+        invoices:[...state.invoices, newInvoice]
     })),
 
+    deleteInvoice: (id) => set((state) => ({
+        invoices: state.invoices.filter((invoice) => invoice.id !== id)
+    })),
+    
     addCLient: (newClient) => set((state) => ({
         clients: [...state.clients, newClient]
     })),
