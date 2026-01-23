@@ -40,10 +40,20 @@ const printInvoice = async (invoice) => {
             font-weight: bold;
             color: #1e3a8a; /* Deep blue to match the header */
         }
+        .logo-container img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;] /* Ensures the whole logo fits without cropping */
+            display: block;
+            margin-bottom: 10px;
+        }
         </style>
     </head>
         <body>
             <div class="header">
+                <div class="logo-container">
+                    ${profile.logoUri ? `<img src="${profile.logoUri}" style="width: 100px; height: 100px; object-fit: contain; border-radius: 12px" />` : ''}
+                </div>
                 <div class="business-info">
                     <h1>${profile.businessName || 'BIZ'}</h1>
                     <p>${profile.phone || 'Contact Info Not Set'}</p>
@@ -149,7 +159,7 @@ export default function Invoices() {
                                 <Text style={styles.itemCount}>{item.items?.length || 0} Items</Text>
                             </View>
                             <View style={styles.cardActions}>
-                                <Text style={styles.amount}>Ksh. {item.total.toFixed(2)}</Text>
+                                <Text style={styles.amount}>Ksh. {(item.total || 0).toFixed(2)}</Text>
                                 <View style={{ flexDirection: 'row', gap: 12}}>
                                     {/* PRINT BUTTON */}
                                     <TouchableOpacity 
