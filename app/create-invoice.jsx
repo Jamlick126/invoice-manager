@@ -5,14 +5,28 @@ import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+
+// --- HELPER FUNCTION FOR LONG DATE ---
+const getLongDate = () => {
+    return new Intl.DateTimeFormat('en-GB', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+    }).format(new Date());
+};
+
+
 export default function CreateInvoice() {
     const router = useRouter()
     const [allProducts, setAllProducts] = useState([]);
     const [selectedItems, setSelectedItems] = useState([]);
     const [total, setTotal] = useState(0);
     const [clientName, setClientName] = useState('');
+    
 
     const addInvoice = useStore((state) => state.addInvoice);
+
 
     useEffect(() => {
         const loadProducts = async () => {
@@ -70,36 +84,36 @@ export default function CreateInvoice() {
 
     const saveInvoice = () => {
         if (selectedItems.length === 0) {
-            alert("Error", "Please add at least one item");
+            Alert.alert("Error", "Please add at least one item");
             return;
         }
         try {
-              // final invoice object
-        const newInvoice = {
-            id: Date.now().toString(),
-            clientName: clientName || "Walk-in Customer",
-            items: selectedItems,
-            total: total,
-            date: new Date().toLocaleDateString(),
-        };
+                // final invoice object
+            const newInvoice = {
+                id: Date.now().toString(),
+                clientName: clientName || "Walk-in Customer",
+                items: selectedItems,
+                total: total,
+                date: getLongDate(),
+            };
 
-        addInvoice(newInvoice);
+            addInvoice(newInvoice);
 
-        if (Platform.OS === 'web') {
-            alert("Success: Invoice generated");
-            router.push('/invoices');
-        } else {
-            Alert.alert(
-            "Success", "Invoice generated!",
-        [
-            { text: "OK", onPress: () => router.push('/invoices')}
-        ]);
+            if (Platform.OS === 'web') {
+                Alert.alert("Success: Invoice generated");
+                router.push('/invoices');
+            } else {
+                Alert.alert(
+                "Success", "Invoice generated!",
+            [
+                { text: "OK", onPress: () => router.push('/invoices')}
+            ]);
 
-        }
-        
-        } catch {
+            }
+            
+        } catch (error) {
             console.error("Failed to save invoice.", error);
-            alert("Error", "Could not save invoice.")
+            Alert.alert("Error", "Could not save invoice.")
         }
       
     };
@@ -132,8 +146,8 @@ export default function CreateInvoice() {
                 ))}
 
                 <View style={styles.totalBox}>
-                    <Text style={styles.totalLbel}>Total Amount:</Text>
-                    <Text style={styles.totalLbel}>Ksh. {total.toFixed(2)}</Text>
+                    <Text style={styles.totalLabel}>Total Amount:</Text>
+                    <Text style={styles.totalValue}>Ksh. {total.toFixed(2)}</Text>
                 </View>
 
                 <Text style={styles.sectionTitle}>Tap to Add Product</Text>

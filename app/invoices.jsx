@@ -7,38 +7,93 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 const printInvoice = async (invoice) => {
+
+    const { profile } = useStore.getState();
+
     const html = `
     <html>
     <head>
         <style>
-        body { padding: 20px; font-family: sans-serif; }
-        table { width: 100%; border-collapse: collapse; }
-        th { background-color: #f8fafc; padding: 10px; border-bottom: 2px solid #e2e8f0; }
-        td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+        body { padding: 20px; font-family: 'Helvetica' ,sans-serif; color:#333 }
+        .header { display: flex; justify-content: space-between; margin-bottom: 40px; border-bottom: 2px solid #1e3a8a; padding-bottom: 20px; }
+          .business-info h1 { color: #1e3a8a; marginTop: 10px; text-transform: uppercase; }
+          .business-info p { margin: 2px 0; color: #64748b; }
+          .invoice-details { text-align: right; }
+        table { width: 100%; border-collapse: collapse; margin-top: 30px;}
+        th { background-color: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; }
+        td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
+        .total { text-align: right; margin-top: 30px; font-size: 20px; color: #10b981; }
+        .client-section {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #f8fafc; /* Light gray background to make it pop */
+            border-radius: 5px;
+        }
+        .client-label {
+            font-size: 12px;
+            color: #64748b;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .client-name {
+            font-size: 22px; /* Increased font size */
+            font-weight: bold;
+            color: #1e3a8a; /* Deep blue to match the header */
+        }
+        .logo-container img {
+            width: 100px;
+            height: 100px;
+            object-fit: contain;] /* Ensures the whole logo fits without cropping */
+            display: block;
+            margin-bottom: 10px;
+        }
         </style>
     </head>
-        <body style="font-family: Arial; padding: 20px;">
-            <h1 style="color: #1e3a8a;">Invoice</h1>
-            <p><strong>Client:</strong> ${invoice.clientName}</p>
-            <p><strong>Date:</strong> ${invoice.date}</p>
+        <body>
+            <div class="header">
+                <div class="logo-container">
+                    ${profile.logoUri ? `<img src="${profile.logoUri}" style="width: 100px; height: 100px; object-fit: contain; border-radius: 12px" />` : ''}
+                </div>
+                <div class="business-info">
+                    <h1>${profile.businessName || 'BIZ'}</h1>
+                    <p>${profile.phone || 'Contact Info Not Set'}</p>
+                </div>
+
+                <div class="invoice-details">
+                    <h2>OFFICIAL RECEIPT</h2>
+                    <p><strong>Date:</strong> ${invoice.date}</p>
+                    <p><strong>Invoice #:</strong> ${invoice.id.slice(-6)}</p>
+                </div>
+            </div>
+
+            <div class="client-section">
+                <div class="client-label">Bill To:</div>
+                <div class="client-name">${invoice.clientName}</div>
+            </div>
+            
             <hr />
-            <table style="width: 100%; border-collapse: collapse;">
-            <tr style="background: #f1f5f9;">
-                <th style="text-align: left; padding: 8px;">Item</th>
-                <th style="text-align: right; padding: 8px;">Subtotal</th>
-            </tr>
-            ${invoice.items.map(item => `
-                <tr>
-                <td style="padding: 8px; border-bottom: 1px solid #eee;">
-                    ${item.name} (x${item.quantity || 1})
-                </td>
-                <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">
-                    Ksh. ${(parseFloat(item.price) * (item.quantity || 1)).toFixed(2)}
-                </td>
-                </tr>
-            `).join('')}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Description</th>
+                        <th style="text-align: right; padding: 8px;">Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${invoice.items.map(item => `
+                        <tr>
+                        <td>${item.name} (x${item.quantity || 1})</td>
+                        <td style="text-align: right; padding: 8px; border-bottom: 1px solid #eee;">
+                            Ksh. ${(parseFloat(item.price) * (item.quantity || 1)).toFixed(2)}
+                        </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
             </table>
-            <h3 style="text-align: right; color: #10b981;">Total: Ksh. ${invoice.total.toFixed(2)}</h3>
+
+            <div class="total">
+                <strong>Total Amount: Ksh. ${invoice.total.toLocaleString()}</strong>
+            </div>
 
         </body>
     </html>`;
@@ -104,7 +159,7 @@ export default function Invoices() {
                                 <Text style={styles.itemCount}>{item.items?.length || 0} Items</Text>
                             </View>
                             <View style={styles.cardActions}>
-                                <Text style={styles.amount}>Ksh. {item.total.toFixed(2)}</Text>
+                                <Text style={styles.amount}>Ksh. {(item.total || 0).toFixed(2)}</Text>
                                 <View style={{ flexDirection: 'row', gap: 12}}>
                                     {/* PRINT BUTTON */}
                                     <TouchableOpacity 

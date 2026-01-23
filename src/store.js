@@ -8,9 +8,18 @@ export const useStore = create(
             invoices: [],
             clients:[],
             products:[],
+            profile: {
+                businessName: '',
+                phone: '',
+                logoUri: null,
+            },
 
         addInvoice: (newInvoice) => set((state) => ({
             invoices:[...state.invoices, newInvoice]
+        })),
+
+        updateProfile: (newData) => set((state) => ({
+            profile: { ...state.profile, ...newData}
         })),
 
         deleteInvoice: (id) => set((state) => ({
