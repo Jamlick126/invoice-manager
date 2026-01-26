@@ -6,10 +6,12 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 const STORAGE_KEY = 'product_list';
 
 export default function Products() {
-    const [ modalVisible, setModalVisible] = useState(false);
+    const [modalVisible, setModalVisible] = useState(false);
     const [products, setProducts] = useState([]);
     const [name, setName] = useState('');
     const [price, setPrice] = useState('');
+    const [stock, setStock] = useState('');
+
     // Load data from storage on startup
     useEffect(() => {
         loadProducts();
@@ -18,6 +20,23 @@ export default function Products() {
     useEffect(() => {
         saveProducts(products);
     }, [products]);
+    
+    const addProducts = () => {
+        if (name && price && stock) {
+            const newProduct = {
+                id: Date.now().toString(),
+                name,
+                price,
+                initialStock: parseInt(stock),
+            };
+            setProducts([...products, newProduct]);
+            setName('');
+            setPrice('');
+            setStock('');
+            setModalVisible(false);
+        }
+    };
+ 
 
     const loadProducts = async () => {
         try {
@@ -42,22 +61,6 @@ export default function Products() {
             console.error("Failed to save products", e);
         }
     };
-
-    
-
-    const addProduct = () => {
-        if (name && price) {
-            const newProduct = {
-                id: Date.now().toString(),
-                name,
-                price,
-            };
-            setProducts([...products, newProduct]);
-            setName('');
-            setPrice('');
-            setModalVisible(false);
-         }
-        };
 
     const deleteProduct = (id) => {
         setProducts(products.filter(item => item.id !== id));
@@ -106,19 +109,27 @@ export default function Products() {
                     >
                         <Text style={styles.modalTitle}>New Product</Text>
                         <TextInput
-                        style={styles.input}
-                        placeholder="Product Name "
-                        value={name}
-                        onChangeText={setName}
+                            style={styles.input}
+                            placeholder="Product Name "
+                            value={name}
+                            onChangeText={setName}
                         />
                         
                         <TextInput
-                        style={styles.input}
-                        placeholder="Price (Ksh.)"
-                        value={price}
-                        onChangeText={setPrice}
-                        keyboardType="numeric"
+                            style={styles.input}
+                            placeholder="Price (Ksh.)"
+                            value={price}
+                            onChangeText={setPrice}
+                            keyboardType="numeric"
                         />
+
+                        <TextInput
+                            style={styles.input}
+                            placeholder="Starting Stock Quantity"
+                            value={stock}
+                            onChangeText={setStock}
+                            keyboardType="numeric"
+                        />  
                         <View style={styles.modalButtons}>
                             <TouchableOpacity
                                 style={[styles.button, styles.cancelButton]}
@@ -129,7 +140,7 @@ export default function Products() {
 
                             <TouchableOpacity
                             style={[styles.button, styles.saveButton]}
-                            onPress={addProduct}>
+                            onPress={addProducts}>
                                 <Text style={styles.buttonText}>Save Product</Text>
                             </TouchableOpacity>
                         </View>
