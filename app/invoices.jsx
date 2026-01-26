@@ -47,6 +47,22 @@ const printInvoice = async (invoice) => {
             display: block;
             margin-bottom: 10px;
         }
+        .footer {
+            margin-top: 100px;
+            border-top: 1px solid #e2e8f0;
+            padding-top: 20px;
+        }
+        .terms-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #1e3a8a;
+            margin-bottom: 5px;
+        }
+        .terms-text {
+            font-size: 11px;
+            color: #64748b;
+            line-height: 1.5;
+        }
         </style>
     </head>
         <body>
@@ -93,6 +109,14 @@ const printInvoice = async (invoice) => {
 
             <div class="total">
                 <strong>Total Amount: Ksh. ${invoice.total.toLocaleString()}</strong>
+            </div>
+            <div class="footer">
+            <div class="terms-title">Terms & Conditions</div>
+                <div class="terms-text">
+                    1. Goods once sold are not returnable or exchangeable. <br />
+                    2. Payments should be made within 7 days of the invoice date. <br />
+                    3. Thank you for choosing ${profile.businessName || 'our business'}!
+                </div>
             </div>
 
         </body>
