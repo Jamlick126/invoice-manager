@@ -1,10 +1,14 @@
 import React, { useState, useEffect, use } from "react";
-import { View, Text, FlatList, StyleSheet } from "react-native";
+import { View, Text, FlatList, StyleSheet, Modal, TextInput, Alert, TouchableOpacity,  } from "react-native";
 import { useStore } from "../src/store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function Inventory() {
-    const [products, setProducts] = useState([]); // Assuming products are in store
+    const [products, setProducts] = useState([]);
+    const [modalVisible, setModalVisible] = useState(false);
+    const [selectedProduct, setSelectedProduct] = useState(null); 
+    const [restockAmount, setRestockAmount] = useState('');
     const invoices = useStore((state) => state.invoices);
 
     useEffect(() => {
@@ -15,6 +19,31 @@ export default function Inventory() {
         loadProducts();
     }, []);
 
+    const handleRestockSave = async () => {
+        const additional = parseInt(restockAmount);
+        if (isNaN(additional) || additional <= 0) {
+            Alert.alert("Invalid Input", "Please enter a valid number of barrels.");
+            return;
+        }
+
+        const updatedProducts = products.map(p => {
+            if (p.name === selectedProduct.name) {
+                return {
+                    ...p,
+                    initialStock: (parseInt(p.initialStock) || 0) + additional
+                };
+            }
+            return p;
+        });
+
+        await AsyncStorage.setItem('product_list', JSON.stringify(updatedProducts));
+        setProducts(updatedProducts);
+        setModalVisible(false);
+        setRestockAmount('');
+        Alert.alert("Stock Updated", `Added ${additional} barrels to ${selectedProduct.name}`);
+    };
+
+  
     const calculateStock = (productName) => {
         const product = products.find(p => p.name === productName);
         const initial = parseInt(product?.initialStock || 0);
@@ -58,10 +87,61 @@ export default function Inventory() {
                                 </View>
                             </View>
 
+                        <TouchableOpacity 
+                            style={styles.restockBtn} 
+                            onPress={() => {
+                                setSelectedProduct(item);
+                                setModalVisible(true);
+                            }}
+                        >
+                            <Ionicons name="add-circle-outline" size={20} color="#1e3a8a" />
+                            <Text style={styles.restockText}>Restock Barrels</Text>
+                        </TouchableOpacity>
+
+      
+
                         </View>
                     );
                 }}
             />
+            <Modal
+                animationType="fade"
+                transparent={true}
+                visible={modalVisible}
+                onRequestClose={() => setModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalView}>
+                        <Text style={styles.modalTitle}>Restock {selectedProduct?.name}</Text>
+                        <Text style={styles.modalLabel}>Enter number of barrels to add:</Text>
+                        
+                        <TextInput
+                            style={styles.modalInput}
+                            placeholder="e.g. 10"
+                            keyboardType="numeric"
+                            value={restockAmount}
+                            onChangeText={setRestockAmount}
+                            autoFocus={true}
+                        />
+
+                        <View style={styles.modalButtons}>
+                            <TouchableOpacity 
+                                style={[styles.btn, styles.cancelBtn]} 
+                                onPress={() => setModalVisible(false)}
+                            >
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+
+                            <TouchableOpacity 
+                                style={[styles.btn, styles.confirmBtn]} 
+                                onPress={handleRestockSave}
+                            >
+                                <Text style={styles.confirmBtnText}>Add Barrels</Text>
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </View>
     );
 }
@@ -88,5 +168,66 @@ const styles = StyleSheet.create({
         color: '#475569',
     },
     label: { color: '#64748b' },
-    count: { fontWeight: 'bold', fontSize: 16 }
+    count: { fontWeight: 'bold', fontSize: 16 },
+    restockBtn: {
+    marginTop: 15,
+    backgroundColor: '#eff6ff',
+    padding: 10,
+    borderRadius: 8,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 8,
+    borderWidth: 1,
+        borderColor: '#bfdbfe',
+    },
+    restockText: {
+        color: '#1e3a8a',
+        fontWeight: 'bold',
+        fontSize: 14,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20
+    },
+    modalView: {
+        width: '100%',
+        backgroundColor: 'white',
+        borderRadius: 20,
+        padding: 25,
+        elevation: 10,
+    },
+    modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#1e3a8a', marginBottom: 10 },
+    modalLabel: { color: '#64748b', marginBottom: 15 },
+    modalInput: {
+        borderWidth: 1,
+        borderColor: '#e2e8f0',
+        borderRadius: 10,
+        padding: 15,
+        fontSize: 18,
+        marginBottom: 20,
+    },
+    modalButtons: { flexDirection: 'row', gap: 10 },
+    btn: { flex: 1, padding: 15, borderRadius: 10, alignItems: 'center' },
+    cancelBtn: { backgroundColor: '#f1f5f9' },
+    confirmBtn: { backgroundColor: '#1e3a8a' },
+    cancelBtnText: { color: '#64748b', fontWeight: 'bold' },
+    confirmBtnText: { color: 'white', fontWeight: 'bold' },
+    
+    restockBtn: {
+        marginTop: 15,
+        backgroundColor: '#eff6ff',
+        padding: 12,
+        borderRadius: 10,
+        flexDirection: 'row',
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+        borderWidth: 1,
+        borderColor: '#bfdbfe',
+    },
+    restockText: { color: '#1e3a8a', fontWeight: 'bold' }
 });

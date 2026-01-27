@@ -32,7 +32,12 @@ export const useStore = create(
 
         addProduct: (newProduct) => set((state) => ({
             products: [...state.products, newProduct]
-        }))
+        })),
+        updateInvoiceStatus: (id, status) => set((state) => ({
+            invoices: state.invoices.map((inv) => 
+                inv.id === id ? { ...inv, status } : inv
+            )
+        })),
     }),
     {
         name: "invoice-storage",
