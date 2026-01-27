@@ -95,6 +95,7 @@ export default function CreateInvoice() {
                 items: selectedItems,
                 total: total,
                 date: getLongDate(),
+                status: 'Pending', //Default status
             };
 
             addInvoice(newInvoice);

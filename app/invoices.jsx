@@ -79,6 +79,7 @@ const printInvoice = async (invoice) => {
                     <h2>OFFICIAL RECEIPT</h2>
                     <p><strong>Date:</strong> ${invoice.date}</p>
                     <p><strong>Invoice #:</strong> ${invoice.id.slice(-6)}</p>
+                    <p><strong>Status:</strong> <span style="color: ${invoice.status === 'Paid' ? '#10b981' : '#ef4444'}">${invoice.status || 'Pending'}</span></p>
                 </div>
             </div>
 
@@ -134,6 +135,7 @@ const printInvoice = async (invoice) => {
 export default function Invoices() {
     const router = useRouter();
     const invoices = useStore((state) => state.invoices);
+    const updateInvoiceStatus = useStore((state) => state.updateInvoiceStatus);
     const [isReady, setIsReady] = useState(false);
     const deleteInvoice = useStore((state) => state.deleteInvoice);
 
@@ -167,6 +169,10 @@ export default function Invoices() {
         }
        
     };
+    const getStatusStyle = (status) => ({
+        backgroundColor: status === 'Paid' ? '#dcfce7' : '#fee2e2',
+        color: status === 'Paid' ? '#166534' : '#991b1b',
+    });
 
     return (
         <View style={styles.container}>
@@ -181,6 +187,18 @@ export default function Invoices() {
                                 <Text style={styles.clientName}>{item.clientName || "Walk-in Customer"}</Text>
                                 <Text style={styles.dateText}>{item.date}</Text>
                                 <Text style={styles.itemCount}>{item.items?.length || 0} Items</Text>
+                                {/* Status Badge */}
+                                <TouchableOpacity 
+                                    onPress={() => {
+                                        const newStatus = item.status === 'Paid' ? 'Pending' : 'Paid';
+                                        updateInvoiceStatus(item.id, newStatus);
+                                    }}
+                                    style={[styles.statusBadge, { backgroundColor: getStatusStyle(item.status).backgroundColor }]}
+                                >
+                                    <Text style={[styles.statusText, { color: getStatusStyle(item.status).color }]}>
+                                        {item.status || 'Pending'}
+                                    </Text>
+                                </TouchableOpacity>
                             </View>
                             <View style={styles.cardActions}>
                                 <Text style={styles.amount}>Ksh. {(item.total || 0).toFixed(2)}</Text>
@@ -291,5 +309,22 @@ const styles = StyleSheet.create({
         padding: 8,
         backgroundColor: '#fef2f2',
         borderRadius: 8,
+    },
+    statusBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginTop: 8,
+    },
+    statusText: {
+        fontSize: 12,
+        fontWeight: 'bold',
+        textTransform: 'uppercase',
+    },
+    clientName: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: '#1e293b',
     }
 });
