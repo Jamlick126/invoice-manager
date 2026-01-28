@@ -8,7 +8,8 @@ const MENU_ITEMS = [
   { id: '2', title: 'Payments', icon: 'cash-outline', color: '#10b981', route: '/payments' },
   { id: '3', title: 'Expenses', icon: 'calculator-outline', color: '#8b5cf6', route: '/expenses' },
   { id: '4', title: 'Products', icon: 'albums-outline', color: '#aef65c', route: '/products' },
-  { id: '5', title: 'Settings', icon: 'settings-outline', color: '#aed6ca', route:'/settings'},
+  { id: '5', title: 'Clients', icon: 'person-outline', color: '#0bd6f5', route: '/clients' },
+  { id: '6', title: 'Settings', icon: 'settings-outline', color: '#aed6ca', route:'/settings'},
   { id: '7', title: 'Inventory', icon: 'cube-outline', color: '#f59e0b', route:'/inventory' },
 ]
 
