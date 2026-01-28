@@ -11,6 +11,8 @@ const MENU_ITEMS = [
   { id: '5', title: 'Clients', icon: 'person-outline', color: '#0bd6f5', route: '/clients' },
   { id: '6', title: 'Settings', icon: 'settings-outline', color: '#aed6ca', route:'/settings'},
   { id: '7', title: 'Inventory', icon: 'cube-outline', color: '#f59e0b', route:'/inventory' },
+  { id: '8', title: 'Dashboard', icon: 'speedometer-outline', color: '#f97316', route:'/dashboard' },
+  { id: '9', title: 'Purchases', icon: 'cart-outline', color: '#f43f5e', route:'/purchase' },
 ]
 
 export default function Dashboard() {
