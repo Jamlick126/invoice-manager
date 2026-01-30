@@ -2,35 +2,38 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import { useStore } from "../src/store";
 import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+const PURCHASE_STORAGE_KEY = 'purchase_list';
+
 export default function Dashboard() {
+    const isFocused = useIsFocused();
     const invoices = useStore((state) => state.invoices);
     const [products, setProducts] = useState([]);
     const [accountsPayable, setAccountsPayable] = useState(0);
 
     useEffect(() => {
-        const calculatePaybale = async () => {
-            const saved = await AsyncStorage.getItem('purchase-list');
-            if (saved) {
-                const list = JSON.parse(saved);
-                // sum only 'Unpaid' purchases
-                const total = list
-                    .filter(purchase => purchase.status === 'Unpaid')
-                    .reduce((sum, purchase) => sum + (purchase.amount || 0), 0);
-                setAccountsPayable(total);
-            }
+        if (isFocused) {
+            loadDashboardData();
         }
-        calculatePaybale();
-    }, []);
+    }, [isFocused, invoices]);
 
-    useEffect(() => {
-        const loadProducts = async () => {
-            const saved = await AsyncStorage.getItem('product_list');
-            if (saved) setProducts(JSON.parse(saved));
+    const loadDashboardData = async () => {
+        const prodData = await AsyncStorage.getItem('product_list');
+        if (prodData) setProducts(JSON.parse(prodData));
+
+        const purchaseData = await AsyncStorage.getItem(PURCHASE_STORAGE_KEY);
+        if (purchaseData) {
+            const list = JSON.parse(purchaseData);
+            const totalDebt = list.reduce((sum, purchase) => {
+                const totalCost = purchase.totalAmount || purchase.amount || 0;
+                const paidSoFar = (purchase.payments || []).reduce((pSum, p) => pSum + p.amount, 0);
+                return sum + (totalCost - paidSoFar);
+            }, 0);
+            setAccountsPayable(totalDebt);
         }
-        loadProducts();
-    }, []);
+    };
 
     // 1. Revenue Calculation
     const totalSales = invoices.reduce((sum, inv) => sum + (inv.total || 0), 0);
@@ -42,10 +45,16 @@ export default function Dashboard() {
     // 2. Low Stock Logic
     const lowStockItems = products.filter(product => {
         const totalSold = invoices.reduce((sum, invoice) => {
-            const itemInInvoice = invoice.items?.find(i => i.name === product.name );
-            return sum + (itemInInvoice ? parseInt(itemInInvoice.quality || 0) : 0);
+            const matchingItems = invoice.items?.filter(i => i.name === product.name) || [];
+            const itemSum = matchingItems.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+            return sum + itemSum;
         }, 0 );
-        const remaining = (parseInt(product.initialStock) || 0) - totalSold;
+
+        const initial = Number(product.initialStock) || 0;
+
+        if (isNaN(initial) || initial === 0) return false;
+
+        const remaining = initial - totalSold;
         return remaining < 10; // ALert threshold
     });
 
