@@ -45,7 +45,7 @@ export default function Products() {
                 setProducts(JSON.parse(saveProducts));
             } else {
                 setProducts([
-                    { id: '1', name: 'KEG Black', price: '5800'},
+                    { id: '1', name: 'KEG Black', price: '5800', initialStock: 100},
                 ]);
             }
         } catch (e) {
@@ -78,6 +78,7 @@ export default function Products() {
                         <View>
                             <Text style={styles.productName}>{item.name}</Text>
                             <Text style={styles.productPrice}>{item.price}</Text>
+                            <Text style={{fontSize: 12, color: '#64748b'}}>Base Stock: {item.initialStock}</Text>
                         </View>
                         <TouchableOpacity
                             onPress={() => deleteProduct(item.id)}>
