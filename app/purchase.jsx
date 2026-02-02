@@ -1,12 +1,13 @@
-
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, TouchableOpacity, Modal, TextInput, Alert } from "react-native";
 import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PURCHASE_STORAGE_KEY = 'purchase_list';
 
 export default function Purchase() {
+    const params = useLocalSearchParams();
     const [modalVisible, setModalVisible] = useState(false);
     // state for payment modal
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
@@ -17,11 +18,22 @@ export default function Purchase() {
     const [supplier, setSupplier] = useState('');
     const [amount, setAmount] = useState('');
     const [description, setDescription] = useState('');
+    const [quantity, setQuantity] = useState('');
     // add payment states
     const [selectedPurchase, setSelectedPurchase] = useState(null);
     const [paymentInput, setPaymentInput] = useState('');
 
     useEffect(() => { loadPurchases(); }, []);
+
+    // -- auto-refill logic --//
+    useEffect(() => {
+        if (params.prefillName) {
+            setDescription(`Restock: ${params.prefillName}`);
+            setSupplier(params.prefillName);
+            setModalVisible(true);
+        }
+    }, [params.prefillName]);
+
 
     const loadPurchases = async () => {
         const saved = await AsyncStorage.getItem(PURCHASE_STORAGE_KEY);
@@ -34,21 +46,36 @@ export default function Purchase() {
     };
 
     const addPurchase = async () => {
-        if (supplier && amount) {
+        if (supplier && amount && quantity) {
+            const newQty = parseInt(quantity);
+
             const newPurchase = {
                 id: Date.now().toString(),
                 supplier,
                 totalAmount: parseInt(amount),
                 payments: [],
-                description,
+                description: `${description} (+${newQty} barrels)`,
                 status: 'Unpaid', // Default for Accounts Payable
                 date: new Date().toLocaleDateString(),
             };
             const newList = [newPurchase, ...purchases];
             setPurchases(newList);
             await AsyncStorage.setItem(PURCHASE_STORAGE_KEY, JSON.stringify(newList));
+
+            const productData = await AsyncStorage.getItem('product_list');
+            if (productData) {
+                const allProducts = JSON.parse(productData);
+                const updatedProducts = allProducts.map(p => {
+                    if (p.name === params.prefillName || p.id === params.productId) {
+                        return { ...p, initialStock: (Number(p.initialStock) || 0) + newQty};
+                    }
+                    return p;
+                });
+                await AsyncStorage.setItem('product_list', JSON.stringify(updatedProducts));
+            }
             setModalVisible(false);
-            setSupplier(''); setAmount(''); setDescription('');
+            setSupplier(''); setAmount(''); setDescription(''); setQuantity('');
+            Alert.alert("Success", "Stock updated and purchase recorded!");
         }
     };
 // new function to add an installment payment
@@ -197,6 +224,7 @@ export default function Purchase() {
                         <Text style={styles.modalTitle}>Add Purchase</Text>
                         <TextInput style={styles.input} placeholder="Supplier Name" value={supplier} onChangeText={setSupplier} />
                         <TextInput style={styles.input} placeholder="Amount (Ksh)" value={amount} onChangeText={setAmount} keyboardType="numeric" />
+                        <TextInput style={styles.input} placeholder="Quantity Received (e.g. 100)" value={quantity} onChangeText={setQuantity} keyboardType="numeric" />
                         <TextInput style={styles.input} placeholder="Description (e.g. 10 Barrels)" value={description} onChangeText={setDescription} />
                         <View style={styles.modalButtons}>
                             <TouchableOpacity style={[styles.btn, styles.cancelBtn]} onPress={() => setModalVisible(false)}>
