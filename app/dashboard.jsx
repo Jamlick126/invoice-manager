@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Dimensions, TouchableOpacity } from 'react-native';
 import { useStore } from "../src/store";
 import { Ionicons } from '@expo/vector-icons';
+import { useRouter } from "expo-router";
 import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PURCHASE_STORAGE_KEY = 'purchase_list';
 
 export default function Dashboard() {
+    const router = useRouter();
     const isFocused = useIsFocused();
     const invoices = useStore((state) => state.invoices);
     const [products, setProducts] = useState([]);
@@ -83,12 +85,43 @@ export default function Dashboard() {
             {/* Low Stock Alerts */}
             <Text style={styles.sectionTitle}>Action Required</Text>
             {lowStockItems.length > 0 ? (
-                lowStockItems.map(item => (
-                    <View key={item.id} style={styles.alertCard}>
-                        <Ionicons name="warning" size={20} color="#ef4444"/>
-                        <Text style={styles.alertText}>{item.name} is running low!</Text>
-                    </View>
-                ))
+                lowStockItems.map(item => {
+                    const totalSold = invoices.reduce((sum, invoice) => {
+                        const matchingItems = invoice.items?.filter(i => i.name === item.name) || [];
+                        const itemSum = matchingItems.reduce((s, i) => s + (Number(i.quantity) || 0), 0);
+                        return sum + itemSum;
+                    }, 0);
+                    const remaining = (Number(item.initialStock) || 0) - totalSold;
+               
+                    return (
+                        <View key={item.id} style={styles.alertCard}>
+                            <View style={{ flex: 1}}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                    <Ionicons name="warning" size={20} color="#ef4444"/>
+                                    <Text style={styles.alertText}>{item.name} is running low!</Text>
+                                </View>
+                                {/* -- added quantity counter --*/}
+                                <Text style={{ marginLeft: 30, fontSize: 12, color: '#ef4444', fontWeight: '500'}}>
+                                    Only {remaining} left in stock
+                                </Text>
+                            </View>
+
+                            {/* --- NEW RESTOCK BUTTON --- */}
+                            <TouchableOpacity 
+                                style={styles.restockButton}
+                                onPress={() => {
+                                    router.push({
+                                        pathname: "/purchase",
+                                        params: { prefillName: item.name }
+                                    });
+                                }}
+                            >
+                                <Text style={styles.restockText}>Restock</Text>
+                                <Ionicons name="chevron-forward" size={16} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                    ); 
+                })
             ): (
                 <View style={styles.emptyCard}>
                     <Text style={styles.emptyText}>Stock levels are healthy</Text>
@@ -138,5 +171,26 @@ const styles = StyleSheet.create({
     receivableCard: { backgroundColor: '#eff6ff', padding: 20, borderRadius: 16, marginTop: 10, borderWidth: 1, borderColor: '#bfdbfe' },
     pendingValue: { fontSize: 24, fontWeight: 'bold', color: '#1e3a8a', marginVertical: 5 },
     emptyCard: { padding: 20, alignItems: 'center' },
-    emptyText: { color: '#94a3b8', fontStyle: 'italic' }
+    emptyText: { color: '#94a3b8', fontStyle: 'italic' },
+    restockButton: {
+    backgroundColor: '#1e3a8a',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    },
+    restockText: {
+        color: 'white',
+        fontSize: 12,
+        fontWeight: 'bold',
+        marginRight: 4
+    },
+    stockCounter: {
+    marginLeft: 30, // Aligns it under the text, past the icon
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: '500',
+    marginTop: 2    
+    },
 });
