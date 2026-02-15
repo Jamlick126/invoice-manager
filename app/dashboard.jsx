@@ -7,6 +7,7 @@ import { useIsFocused } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const PURCHASE_STORAGE_KEY = 'purchase_list';
+const EXPENSE_STORAGE_KEY = 'expense_list';
 
 export default function Dashboard() {
     const router = useRouter();
@@ -14,6 +15,9 @@ export default function Dashboard() {
     const invoices = useStore((state) => state.invoices);
     const [products, setProducts] = useState([]);
     const [accountsPayable, setAccountsPayable] = useState(0);
+    const [totalExpenses, setTotalExpenses] = useState(0);
+    const [totalPurchPayments, setTotalPurchPayments] = useState(0);
+    const [personnelReceivables, setPersonnelReceivables] = useState(0);
 
     useEffect(() => {
         if (isFocused) {
@@ -28,13 +32,35 @@ export default function Dashboard() {
         const purchaseData = await AsyncStorage.getItem(PURCHASE_STORAGE_KEY);
         if (purchaseData) {
             const list = JSON.parse(purchaseData);
+            // Calculate Debt
             const totalDebt = list.reduce((sum, purchase) => {
                 const totalCost = purchase.totalAmount || purchase.amount || 0;
                 const paidSoFar = (purchase.payments || []).reduce((pSum, p) => pSum + p.amount, 0);
                 return sum + (totalCost - paidSoFar);
             }, 0);
             setAccountsPayable(totalDebt);
+            // Calculate Cost of Goods
+            setTotalPurchPayments  (list.reduce((sum, purchase) => {
+                return sum + (purchase.payments || []).reduce((pSum, p) => pSum + p.amount, 0);   
+            }, 0));
         }
+        // 3. Operating Costs
+        const expenseData = await AsyncStorage.getItem(EXPENSE_STORAGE_KEY);
+        if (expenseData) {
+            const eList = JSON.parse(expenseData);
+
+            const businessCosts = eList
+            .filter(e => e.group === 'Expenses')
+            .reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+
+            const pRec = eList
+                .filter(e => e.group === 'Payable' && e.status !== 'Cleared')
+                .reduce((sum, exp) => sum + (Number(exp.amount) || 0), 0);
+
+                setTotalExpenses(businessCosts);
+                setPersonnelReceivables(pRec);
+            }
+
     };
 
     // 1. Revenue Calculation
@@ -43,6 +69,8 @@ export default function Dashboard() {
         .filter(inv => inv.status === 'Pending')
         .reduce((sum, inv) => sum + (inv.total || 0), 0);
     const paidAmount = totalSales - pendingAmount;
+
+    const netProfit = paidAmount -(totalPurchPayments + totalExpenses);
 
     // 2. Low Stock Logic
     const lowStockItems = products.filter(product => {
@@ -60,6 +88,8 @@ export default function Dashboard() {
         return remaining < 10; // ALert threshold
     });
 
+    
+
     return (
         <ScrollView style={styles.container}>
             <Text style={styles.header}>Business Overview</Text>
@@ -67,8 +97,8 @@ export default function Dashboard() {
             {/* Cash Flow Summary */}
             <View style={styles.summaryRow}>
                 <View style={[styles.mainCard, { flex: 2 }]}>
-                    <Text style={styles.cardLabel}>Cash Flow</Text>
-                    <Text style={styles.revenueValue}>Ksh. {totalSales.toLocaleString()}</Text>
+                    <Text style={styles.cardLabel}>Net Profit</Text>
+                    <Text style={[styles.revenueValue, {color: netProfit >= 0 ? '#10b981' : '#ef4444'}]}>Ksh. {netProfit.toLocaleString()}</Text>
                     <View style={styles.divider}/>
                     <View style={styles.statsRow}>
                         <View>
@@ -79,6 +109,22 @@ export default function Dashboard() {
                             <Text style={styles.subLabel}>Pending</Text>
                             <Text style={styles.pendingText}>Ksh. {pendingAmount.toLocaleString()}</Text>
                         </View>
+                    </View>
+                    <View style={[styles.divider, {marginVertical: 10, backgroundColor: '#f8fafc'}]}/>
+
+                    <View style={styles.statsRow}>
+                        <View style={{ flex: 1 }}>
+                            <Text style={styles.subLabel}>Stock Costs</Text>
+                            <Text style={[styles.pendingText, { color: '#475569' }]}>
+                                - {totalPurchPayments.toLocaleString()}
+                            </Text>
+                        </View>
+                        <View style={{ flex: 1, alignItems: 'flex-end' }}>
+                            <Text style={styles.subLabel}>Expenses</Text>
+                            <Text style={[styles.pendingText, { color: '#475569' }]}>
+                                - {totalExpenses.toLocaleString()}
+                            </Text>
+                        </View> 
                     </View>
                 </View>
             </View>
@@ -130,12 +176,34 @@ export default function Dashboard() {
 
             {/* Account Receivables */}
             <View style={styles.receivableCard}>
-                <Text style={styles.cardLabel}>Account Receivables</Text>
-                <Text style={styles.pendingValue}>Ksh {pendingAmount.toLocaleString()}</Text>
-                <Text style={styles.subLabel}>Total outstanding from pending invoices</Text>
+                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center'}}>
+                    <Text style={styles.cardLabel}>Account Receivables</Text>
+                    <Ionicons name="trending-up" size={20} color="#1e3a8a"/>
+                </View>
+
+                <Text style={styles.pendingValue}>Ksh {(pendingAmount + personnelReceivables).toLocaleString()}</Text>
+
+                <View style={styles.divider}/>
+                <View style={styles.statsRow}>
+                    <View>
+                        <Text style={styles.subLabel}>From Customers</Text>
+                        <Text style={{ fontWeight: 'bold', color: '#1e3a8a' }}>
+                            Ksh {pendingAmount.toLocaleString()}
+                        </Text>
+                    </View>
+                    <View style={{ alignItems: 'flex-end' }}>
+                        <Text style={styles.subLabel}>From Payable Expenses</Text>
+                        <Text style={{ fontWeight: 'bold', color: '#1e3a8a' }}>
+                            Ksh {personnelReceivables.toLocaleString()}
+                        </Text>
+                    </View>
+
+
+                </View>
+                
             </View>
             {/* Account Payables */}
-            <View style={styles.receivableCard}>
+            <View style={styles.receivableCard}> 
                 <Text style={styles.cardLabel}>Account Payables</Text>
                 <Text style={styles.pendingValue}>Ksh {accountsPayable.toLocaleString()}</Text>
                 <Text style={styles.subLabel}>Total outstanding from unpaid purchases</Text>
