@@ -33,11 +33,31 @@ export const useStore = create(
         addProduct: (newProduct) => set((state) => ({
             products: [...state.products, newProduct]
         })),
-        updateInvoiceStatus: (id, status) => set((state) => ({
-            invoices: state.invoices.map((inv) => 
-                inv.id === id ? { ...inv, status } : inv
-            )
-        })),
+        updateInvoiceStatus: (id, status, paymentDetails = null) =>{
+           set((state) => ({
+            invoices: state.invoices.map((inv) => {
+            if (inv.id === id) {
+                const newPayments = paymentDetails ? [...(inv.payments || []), paymentDetails] : (inv.payments || []);
+                const totalPaid = newPayments.reduce((sum, p) => sum + p.amount, 0);
+                
+                // Determine status based on math
+                let finalStatus = 'Pending';
+                if (totalPaid >= inv.total) {
+                    finalStatus = 'Paid';
+                } else if (totalPaid > 0) {
+                    finalStatus = 'Partial';
+                }
+
+                return {
+                ...inv,
+                payments: newPayments,
+                status: finalStatus
+                };
+            }
+            return inv;
+            }),
+        }));
+    },
     }),
     {
         name: "invoice-storage",

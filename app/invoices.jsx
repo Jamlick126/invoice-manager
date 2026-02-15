@@ -1,5 +1,5 @@
 import React, { useState, useEffect }from "react";
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Platform, Alert } from "react-native";
+import { View, Text, Modal, TextInput, FlatList, TouchableOpacity, StyleSheet, Platform, Alert } from "react-native";
 import { useRouter } from "expo-router";
 import { useStore} from '../src/store';
 import { Ionicons } from '@expo/vector-icons';
@@ -9,6 +9,9 @@ import * as Sharing from 'expo-sharing';
 const printInvoice = async (invoice) => {
 
     const { profile } = useStore.getState();
+
+    const totalPaid = (invoice.payments || []).reduce((sum, p) => sum + p.amount, 0);
+    const balanceDue = invoice.total - totalPaid;
 
     const html = `
     <html>
@@ -22,7 +25,14 @@ const printInvoice = async (invoice) => {
         table { width: 100%; border-collapse: collapse; margin-top: 30px;}
         th { background-color: #f8fafc; padding: 12px; border-bottom: 2px solid #e2e8f0; }
         td { padding: 12px; border-bottom: 1px solid #e2e8f0; }
-        .total { text-align: right; margin-top: 30px; font-size: 20px; color: #10b981; }
+
+        .payment-history-title { margin-top: 30px; font-size: 14px; font-weight: bold; color: #1e3a8a; border-bottom: 1px solid #cbd5e1; padding-bottom: 5px; }
+        .payment-table td { border-bottom: 1px dashed #e2e8f0; color: #475569; }
+
+        .summary-container { margin-top: 30px; border-top: 2px solid #1e3a8a; padding-top: 10px; }
+        .summary-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 16px; }
+        .balance-row { background-color: #fef2f2; color: #ef4444; font-weight: bold; padding: 10px; border-radius: 5px; margin-top: 10px; }
+    
         .client-section {
             margin: 20px 0;
             padding: 10px;
@@ -108,9 +118,51 @@ const printInvoice = async (invoice) => {
                 </tbody>
             </table>
 
-            <div class="total">
-                <strong>Total Amount: Ksh. ${invoice.total.toLocaleString()}</strong>
+            ${invoice.payments && invoice.payments.length > 0 ? `
+                <div class="payment-history-title">Payment History</div>
+                <table class="payment-table">
+                    <thead>
+                        <tr>
+                            <th style="background: none;">Date</th>
+                            <th style="background: none;">Method</th>
+                            <th style="text-align: right; background: none;">Amount</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${invoice.payments.map(p => `
+                            <tr>
+                                <td>${p.date}</td>
+                                <td>${p.method}</td>
+                                <td style="text-align: right;">Ksh. ${p.amount.toLocaleString()}</td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            ` : ''}
+
+            <div class="summary-container">
+                <div class="summary-row">
+                    <span>Gross Total:</span>
+                    <span>Ksh. ${invoice.total.toLocaleString()}</span>
+                </div>
+                <div class="summary-row" style="color: #10b981;">
+                    <span>Total Paid:</span>
+                    <span>- Ksh. ${totalPaid.toLocaleString()}</span>
+                </div>
+                
+                ${balanceDue > 0 ? `
+                <div class="summary-row balance-row">
+                    <span>BALANCE DUE:</span>
+                    <span>Ksh. ${balanceDue.toLocaleString()}</span>
+                </div>
+                ` : `
+                <div class="summary-row" style="color: #10b981; font-weight: bold; margin-top: 10px;">
+                    <span>ACCOUNT STATUS:</span>
+                    <span>FULLY PAID</span>
+                </div>
+                `}
             </div>
+
             <div class="footer">
             <div class="terms-title">Terms & Conditions</div>
                 <div class="terms-text">
@@ -138,6 +190,10 @@ export default function Invoices() {
     const updateInvoiceStatus = useStore((state) => state.updateInvoiceStatus);
     const [isReady, setIsReady] = useState(false);
     const deleteInvoice = useStore((state) => state.deleteInvoice);
+    const [selectedInvoice, setSelectedInvoice] = useState(null);
+    const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+    const [paymentMethod, setPaymentMethod] = useState('Cash'); // 'Cash' or 'M-Pesa'
+    const [paymentAmount, setPaymentAmount] = useState('');
 
     useEffect(() => {
         setIsReady(true);
@@ -190,14 +246,32 @@ export default function Invoices() {
                                 {/* Status Badge */}
                                 <TouchableOpacity 
                                     onPress={() => {
-                                        const newStatus = item.status === 'Paid' ? 'Pending' : 'Paid';
-                                        updateInvoiceStatus(item.id, newStatus);
+                                        // Calculate total already paid
+                                        const amountPaidSoFar = (item.payments || []).reduce((sum, p) => sum + p.amount, 0);
+                                        const balanceRemaining = item.total - amountPaidSoFar;
+
+                                        // Keep clickable if balance is more than 0
+                                        if (balanceRemaining > 0) {
+                                            setSelectedInvoice(item);
+                                            setPaymentAmount(balanceRemaining.toString()); // Prefill with the remaining balance
+                                            setPaymentModalVisible(true);
+                                        } else {
+                                            Alert.alert("Completed", "This invoice is fully paid.");
+                                        }
                                     }}
-                                    style={[styles.statusBadge, { backgroundColor: getStatusStyle(item.status).backgroundColor }]}
+                                    style={[styles.statusBadge, { 
+                                        backgroundColor: item.status === 'Paid' ? '#dcfce7' : (item.payments?.length > 0 ? '#fef9c3' : '#fee2e2') 
+                                    }]}
                                 >
-                                    <Text style={[styles.statusText, { color: getStatusStyle(item.status).color }]}>
+                                    <Text style={[styles.statusText, { 
+                                        color: item.status === 'Paid' ? '#166534' : (item.payments?.length > 0 ? '#854d0e' : '#991b1b') 
+                                    }]}>
                                         {item.status || 'Pending'}
                                     </Text>
+                                    <Text style={{ fontSize: 12, color: '#ef4444', fontWeight: 'bold' }}>
+                                        Balance: Ksh. {(item.total - (item.payments || []).reduce((sum, p) => sum + p.amount, 0)).toLocaleString()}
+                                    </Text>
+                                                                                                    
                                 </TouchableOpacity>
                             </View>
                             <View style={styles.cardActions}>
@@ -233,7 +307,52 @@ export default function Invoices() {
                 onPress={() => router.push('/create-invoice')}>
                     <Ionicons name="add" size={30} color="#fff"/>
             </TouchableOpacity>
-           
+        {/* PAYMENT MODAL */}
+        <Modal visible={paymentModalVisible} transparent animationType="slide">
+            <View style={styles.modalOverlay}>
+                <View style={styles.modalView}>
+                    <Text style={styles.modalHeader}>Record Payment</Text>
+                    
+                    <Text style={styles.label}>Select Method:</Text>
+                    <View style={styles.methodRow}>
+                        {['Cash', 'M-Pesa'].map(method => (
+                            <TouchableOpacity 
+                                key={method}
+                                style={[styles.methodBtn, paymentMethod === method && styles.activeMethod]}
+                                onPress={() => setPaymentMethod(method)}
+                            >
+                                <Text style={{ color: paymentMethod === method ? '#fff' : '#1e3a8a' }}>{method}</Text>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+
+                    <TextInput 
+                        style={styles.input}
+                        keyboardType="numeric"
+                        value={paymentAmount}
+                        onChangeText={setPaymentAmount}
+                        placeholder="Amount to pay"
+                    />
+
+                    <View style={styles.modalButtons}>
+                        <TouchableOpacity style={styles.cancelBtn} onPress={() => setPaymentModalVisible(false)}>
+                            <Text>Cancel</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.saveBtn} onPress={() => {
+                            // This calls your store's addPayment action
+                            updateInvoiceStatus(selectedInvoice.id, 'Paid', {
+                                amount: parseFloat(paymentAmount),
+                                method: paymentMethod,
+                                date: new Date().toLocaleDateString()
+                            });
+                            setPaymentModalVisible(false);
+                        }}>
+                            <Text style={{color: '#fff'}}>Save Payment</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </View>
+        </Modal>
         </View>
     );
 }
@@ -326,5 +445,16 @@ const styles = StyleSheet.create({
         fontSize: 16,
         fontWeight: '600',
         color: '#1e293b',
-    }
+    },
+    modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+modalView: { backgroundColor: '#fff', borderRadius: 20, padding: 20 },
+modalHeader: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: '#1e3a8a' },
+methodRow: { flexDirection: 'row', gap: 10, marginBottom: 15 },
+methodBtn: { flex: 1, padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#1e3a8a', alignItems: 'center' },
+activeMethod: { backgroundColor: '#1e3a8a' },
+input: { borderWidth: 1, borderColor: '#e2e8f0', padding: 12, borderRadius: 10, marginBottom: 20 },
+modalButtons: { flexDirection: 'row', gap: 10 },
+cancelBtn: { flex: 1, padding: 15, alignItems: 'center' },
+saveBtn: { flex: 2, backgroundColor: '#10b981', padding: 15, borderRadius: 10, alignItems: 'center' },
+label: { fontSize: 14, color: '#64748b', marginBottom: 8 }
 });
