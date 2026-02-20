@@ -1,7 +1,48 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Stack } from 'expo-router';
+import { Stack, useRouter, useSegments } from 'expo-router';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { View, ActivityIndicator } from 'react-native';
 
 export default function Layout() {
+    const [isAuthenticated, setIsAuthenticated] = useState(false);
+    const [isLoading, setIsLoading] = useState(true);
+    const segments = useSegments();
+    const router = useRouter();
+
+    // 1. Check if user is logged in on mount
+    const checkUser = async () => {
+        const user = await AsyncStorage.getItem('user_session');
+        setIsAuthenticated(!!user);
+        setIsLoading(false);
+    };
+    useEffect(() => {
+        checkUser();
+    }, [segments]);
+
+    // 2. Navigation Guard Logic
+    useEffect(() => {
+        if (isLoading) return;
+
+        const inAuthGroup = segments[0] === '(auth)';
+
+        if (!isAuthenticated && !inAuthGroup) {
+            // Redirect to login if not authenticated
+            router.replace('/(auth)/login');
+        } else if (isAuthenticated && inAuthGroup) {
+            // Redirect to dashboard if authenticated but trying to access login
+            router.replace('/');
+        }
+    }, [isAuthenticated, segments, isLoading]);
+
+    if (isLoading) {
+        return (
+            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                <ActivityIndicator size="large" color="#2f4ea1" />
+            </View>
+        );
+    }
+
     return (
         <Stack
             screenOptions={{
@@ -10,6 +51,11 @@ export default function Layout() {
                 headerTitleStyle: { fontWeight: 'bold'},
                 title: 'Invoice Manager',
             }}>
+
+                {/* AUTH SCREENS (Hidden from headers) */}
+            <Stack.Screen name="(auth)/login" options={{ headerShown: false }} />
+            <Stack.Screen name="(auth)/signup" options={{ headerShown: false }} />
+
                 <Stack.Screen name="index" 
                     options={ { drawerLabel: 'Home', title: 'Dashboard',
                     drawerIcon: ({ color }) => <Ionicons name="home-outline" size={22} color={color} />,
