@@ -1,7 +1,9 @@
-import { useRouter } from 'expo-router';
+import { useEffect } from 'react';
+import { useRouter, useNavigation } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View,TouchableOpacity, FlatList } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { StyleSheet, Text, View,TouchableOpacity, FlatList, Alert } from 'react-native';
 
 const MENU_ITEMS = [
   { id: '1', title: 'Invoices', icon: 'document-text-outline', color: '#3b82f6', route: '/invoices' },
@@ -17,6 +19,42 @@ const MENU_ITEMS = [
 
 export default function Dashboard() {
   const router = useRouter()
+  const navigation = useNavigation();
+
+  useEffect(() => {
+    navigation.setOptions({
+        headerRight: () => (
+            <TouchableOpacity 
+                onPress={handleLogout} 
+                style={{ marginRight: 15 }}
+            >
+                <Ionicons name="log-out-outline" size={24} color="#fff" />
+            </TouchableOpacity>
+        ),
+    });
+  }, [navigation]);
+
+  const handleLogout = () => {
+      Alert.alert(
+          "Logout",
+          "Are you sure you want to sign out?",
+          [
+              { text: "Cancel", style: "cancel" },
+              { 
+                  text: "Logout", 
+                  style: "destructive", 
+                  onPress: async () => {
+                      try {
+                        await AsyncStorage.removeItem('user_session');
+                        router.replace('/(auth)/login');
+                      }catch (e) {
+                        console.error("Logout Error", e);
+                      }
+                  } 
+              }
+          ]
+      );
+  };
 
   const renderItem = ({ item }) => (
     <TouchableOpacity
