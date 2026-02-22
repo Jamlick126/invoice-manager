@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 export default function Login() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const router = useRouter();
 
     const handleLogin = async () => {
@@ -48,14 +49,27 @@ export default function Login() {
                 onChangeText={setEmail}
                 autoCapitalize="none"
             />
-
-            <TextInput 
-                style={styles.input}
+            <View style={styles.passwordContainer}>
+                <TextInput 
+                style={styles.passwordInput}
                 placeholder="Password"
                 value={password}
                 onChangeText={setPassword}
-                secureTextEntry
-            />
+                secureTextEntry={!showPassword}
+                />
+                <TouchableOpacity 
+                    style={styles.eyeIcon} 
+                    onPress={() => setShowPassword(!showPassword)}
+                >
+                    <Ionicons 
+                        name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                        size={20} 
+                        color="#64748b" 
+                    />
+                </TouchableOpacity>
+
+            </View>
+           
 
             <TouchableOpacity style={styles.loginBtn} onPress={handleLogin}>
                 <Text style={styles.loginText}>Login</Text>
@@ -77,5 +91,22 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0' },
     loginBtn: { backgroundColor: '#1e3a8a', padding: 18, borderRadius: 12, alignItems: 'center', marginTop: 10 },
     loginText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
-    linkText: { color: '#64748b', textAlign: 'center', marginTop: 20 }
+    linkText: { color: '#64748b', textAlign: 'center', marginTop: 20 },
+    passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 15,
+    },
+    passwordInput: {
+        flex: 1,
+        padding: 15,
+        fontSize: 16,
+    },
+    eyeIcon: {
+        paddingHorizontal: 15,
+    },
 });

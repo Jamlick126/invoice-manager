@@ -6,16 +6,26 @@ import { Ionicons } from '@expo/vector-icons';
 export default function Payments() {
     const invoices = useStore((state) => state.invoices);
     const [filter, setFilter] = useState('All'); // All, Cash, M-Pesa
+    const [timeframe, setTimeframe] = useState('This Month');
+
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
 
     // Filter for paid invoices and flatten the payments into a single list
     const allPayments = invoices.flatMap(inv => 
         (inv.payments || []).map(p => ({
             ...p,
-            customer: inv.customer,
+            customer: inv.clientName,
             invoiceId: inv.id,
-            date: inv.date 
+            date: p.date 
         }))
-    );
+    ).filter(p => {
+        if (timeframe === 'All Time') return true;
+
+        const pDate = new Date(p.date);
+        return pDate.getMonth() === currentMonth && pDate.getFullYear() === currentYear;
+    });
 
 
     const filteredPayments = allPayments.filter(p => 
@@ -29,12 +39,30 @@ export default function Payments() {
     const mpesaTotal = allPayments
         .filter(p => p.method === 'M-Pesa')
         .reduce((sum, p) => sum + p.amount, 0);
+    
+    const totalPayments = cashTotal + mpesaTotal;
 
    
 
     return (
         <View style={styles.container}>
-            <Text style={styles.header}>Payment Records</Text>
+            <View style={styles.headerRow}>
+                <Text style={styles.header}>Payment Records</Text>
+                {/* Timeframe Toggle */}
+                <TouchableOpacity 
+                    style={styles.timeframeToggle} 
+                    onPress={() => setTimeframe(timeframe === 'This Month' ? 'All Time' : 'This Month')}
+                >
+                    <Ionicons name="calendar-outline" size={16} color="#1e3a8a" />
+                    <Text style={styles.timeframeText}>{timeframe}</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* MAIN TOTAL CARD */}
+            <View style={styles.mainTotalCard}>
+                <Text style={styles.mainLabel}>Total Collections</Text>
+                <Text style={styles.mainValue}>Ksh {totalPayments.toLocaleString()}</Text>
+            </View>
 
             {/* Category Summary Cards */}
             <View style={styles.summaryRow}>
@@ -105,5 +133,49 @@ const styles = StyleSheet.create({
     customerName: { fontSize: 16, fontWeight: 'bold', color: '#1e293b' },
     paymentSub: { fontSize: 12, color: '#64748b' },
     paymentAmount: { fontSize: 16, fontWeight: 'bold', color: '#10b981' },
-    empty: { textAlign: 'center', marginTop: 50, color: '#94a3b8' }
+    empty: { textAlign: 'center', marginTop: 50, color: '#94a3b8' },
+    mainTotalCard: {
+    backgroundColor: '#1e3a8a', // Deep blue
+    padding: 25,
+    borderRadius: 16,
+    marginBottom: 20,
+    alignItems: 'center',
+    shadowColor: '#1e3a8a',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 5,
+    },
+    mainLabel: {
+        color: '#bfdbfe',
+        fontSize: 14,
+        textTransform: 'uppercase',
+        letterSpacing: 1,
+    },
+    mainValue: {
+        color: 'white',
+        fontSize: 32,
+        fontWeight: '800',
+        marginTop: 8,
+    },
+    headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+    },
+    timeframeToggle: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#dbeafe',
+        paddingVertical: 6,
+        paddingHorizontal: 12,
+        borderRadius: 8,
+        gap: 5
+    },
+    timeframeText: {
+        color: '#1e3a8a',
+        fontWeight: '700',
+        fontSize: 12
+    },
 });

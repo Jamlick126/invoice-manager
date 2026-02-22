@@ -15,6 +15,8 @@ const MENU_ITEMS = [
   { id: '7', title: 'Inventory', icon: 'cube-outline', color: '#f59e0b', route:'/inventory' },
   { id: '8', title: 'Dashboard', icon: 'speedometer-outline', color: '#f97316', route:'/dashboard' },
   { id: '9', title: 'Purchases', icon: 'cart-outline', color: '#f43f5e', route:'/purchase' },
+  { id: '9', title: 'Reports', icon: 'stats-chart-outline', color: '#3ff484', route:'/reports' },
+  { id: '9', title: 'Pending', icon: 'document-attach-outline', color: '#f43f3f', route:'/pending' }
 ]
 
 export default function Dashboard() {

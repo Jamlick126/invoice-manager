@@ -66,7 +66,8 @@ export default function Layout() {
                     drawerIcon: ({ color }) => <Ionicons name="document-text-outline" size={22} color={color} />,    
                     }}
                 />
-                 <Stack.Screen name="payments" 
+                <Stack.Screen 
+                    name="payments" 
                     options={ { drawerLabel: 'Payments', title: 'Payments',
                         drawerIcon:({ color }) => <Ionicons name="cash-outline" size={22} color={color}/>
                     }}
@@ -101,10 +102,20 @@ export default function Layout() {
                         drawerIcon: ({ color }) => <Ionicons name="stats-chart-outline" size={22} color={color}/>
                     }}
                 />
-                  <Stack.Screen name="settings" 
-                    options={ { drawerLabel: 'Settings', title: 'Settings',
+                <Stack.Screen 
+                    name="settings" 
+                    options={ { 
+                        drawerLabel: 'Settings', 
+                        title: 'Settings',
                         drawerIcon: ({ color }) => <Ionicons name="settings-outline" size={22} color={color}/>
                     }}
+                />
+                <Stack.Screen 
+                    name="pending" 
+                    options={{ 
+                        drawerLabel: "Pending",
+                        title: 'Debt Collection',
+                        drawerIcon: ({ color }) => <Ionicons name="document-attach-outline" size={22} color={color}/> }} 
                 />
         </Stack>
 
