@@ -7,7 +7,6 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
 const printInvoice = async (invoice) => {
-
     const { profile } = useStore.getState();
 
     const totalPaid = (invoice.payments || []).reduce((sum, p) => sum + p.amount, 0);
@@ -132,7 +131,10 @@ const printInvoice = async (invoice) => {
                         ${invoice.payments.map(p => `
                             <tr>
                                 <td>${p.date}</td>
-                                <td>${p.method}</td>
+                                <td>
+                                    ${p.method}
+                                    ${p.transId ? `<br/><small style="color:#64748b;">Ref: ${p.transId}</small>` : ''}
+                                </td>
                                 <td style="text-align: right;">Ksh. ${p.amount.toLocaleString()}</td>
                             </tr>
                         `).join('')}
@@ -192,8 +194,9 @@ export default function Invoices() {
     const deleteInvoice = useStore((state) => state.deleteInvoice);
     const [selectedInvoice, setSelectedInvoice] = useState(null);
     const [paymentModalVisible, setPaymentModalVisible] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState('Cash'); // 'Cash' or 'M-Pesa'
+    const [paymentMethod, setPaymentMethod] = useState('Cash');// 'Cash' or 'M-Pesa'
     const [paymentAmount, setPaymentAmount] = useState('');
+    const [transId, setTransId] = useState('');
 
     useEffect(() => {
         setIsReady(true);
@@ -334,6 +337,17 @@ export default function Invoices() {
                         placeholder="Amount to pay"
                     />
 
+                    {paymentMethod === 'M-Pesa' && (
+                        <TextInput 
+                            style={styles.input}
+                            placeholder="M-Pesa Ref (e.g. RCK...)"
+                            value={transId}
+                            onChangeText={setTransId}
+                            autoCapitalize="characters"
+                        />
+                    )}
+
+
                     <View style={styles.modalButtons}>
                         <TouchableOpacity style={styles.cancelBtn} onPress={() => setPaymentModalVisible(false)}>
                             <Text>Cancel</Text>
@@ -343,8 +357,10 @@ export default function Invoices() {
                             updateInvoiceStatus(selectedInvoice.id, 'Paid', {
                                 amount: parseFloat(paymentAmount),
                                 method: paymentMethod,
+                                transId: paymentMethod === 'M-Pesa' ? transId: '',
                                 date: new Date().toLocaleDateString()
                             });
+                            setTransId('');
                             setPaymentModalVisible(false);
                         }}>
                             <Text style={{color: '#fff'}}>Save Payment</Text>

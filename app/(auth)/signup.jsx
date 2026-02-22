@@ -6,6 +6,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function Signup() {
     const router = useRouter();
+    const [showPassword, setShowPassword] = useState(false);
     const [form, setForm] = useState({
         businessName: '',
         phone: '',
@@ -75,13 +76,26 @@ export default function Signup() {
                 />
 
                 <Text style={styles.label}>Password *</Text>
-                <TextInput 
-                    style={styles.input} 
+                <View style={styles.passwordContainer}>
+                    <TextInput 
+                    style={styles.passwordInput} 
                     placeholder="••••••••" 
-                    secureTextEntry
+                    secureTextEntry={!showPassword}
                     value={form.password}
                     onChangeText={(t) => setForm({...form, password: t})}
-                />
+                    />
+                    <TouchableOpacity 
+                        style={styles.eyeIcon} 
+                        onPress={() => setShowPassword(!showPassword)}
+                    >
+                        <Ionicons 
+                            name={showPassword ? "eye-off-outline" : "eye-outline"} 
+                            size={20} 
+                            color="#64748b" 
+                        />
+                    </TouchableOpacity>
+                </View>
+               
             </View>
 
             <TouchableOpacity style={styles.signupBtn} onPress={handleSignup}>
@@ -101,4 +115,21 @@ const styles = StyleSheet.create({
     input: { backgroundColor: '#fff', padding: 15, borderRadius: 12, marginBottom: 15, borderWidth: 1, borderColor: '#e2e8f0' },
     signupBtn: { backgroundColor: '#1e3a8a', padding: 18, borderRadius: 12, alignItems: 'center' },
     signupText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+    passwordContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    marginBottom: 15,
+    },
+    passwordInput: {
+        flex: 1,
+        padding: 15,
+        fontSize: 16,
+    },
+    eyeIcon: {
+        paddingHorizontal: 15,
+    },
 });

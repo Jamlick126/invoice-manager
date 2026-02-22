@@ -26,11 +26,17 @@ export default function Inventory() {
             return;
         }
 
+        const newBatch = {
+            id: Date.now().toString(),
+            date: new Date().toLocaleDateString(),
+            amount: additional,
+        };
+
         const updatedProducts = products.map(p => {
             if (p.name === selectedProduct.name) {
                 return {
                     ...p,
-                    initialStock: (parseInt(p.initialStock) || 0) + additional
+                    batches: [...(p.batches || []), newBatch]
                 };
             }
             return p;
@@ -46,16 +52,45 @@ export default function Inventory() {
   
     const calculateStock = (productName) => {
         const product = products.find(p => p.name === productName);
-        const initial = parseInt(product?.initialStock || 0);
+
+        const totalRestocked = (product?.batches || []).reduce((sum, b) => sum + b.amount, 0);
 
         const totalSold = invoices.reduce((sum, invoice) => {
             const soldItem = invoice.items.find(i => i.name === productName);
             return sum + (soldItem ? parseInt(soldItem.quantity || 0) : 0);
         }, 0);
         return {
-            initial,
-            remaining: initial - totalSold
+            totalRestocked,
+            remaining: totalRestocked - totalSold
         };
+    };
+
+    const deleteBatch = async (productName, batchId) => {
+        Alert.alert(
+            "Delete Batch",
+            "Are you sure you want to remove this stock entry? This will change your remaining balance.",
+            [
+                { text: "Cancel", style: "cancel" },
+                { 
+                    text: "Delete", 
+                    style: "destructive", 
+                    onPress: async () => {
+                        const updatedProducts = products.map(p => {
+                            if (p.name === productName) {
+                                return {
+                                    ...p,
+                                    batches: p.batches.filter(b => b.id !== batchId)
+                                };
+                            }
+                            return p;
+                        });
+
+                        await AsyncStorage.setItem('product_list', JSON.stringify(updatedProducts));
+                        setProducts(updatedProducts);
+                    } 
+                }
+            ]
+        );
     };
 
     return (
@@ -66,26 +101,40 @@ export default function Inventory() {
                 data={products}
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => {
-                    const { initial, remaining } = calculateStock(item.name);
+                    const { totalRestocked, remaining } = calculateStock(item.name);
                     return (
                         <View style={styles.card}>
                             <Text style={styles.name}>{item.name}</Text>
 
-                            <View style={styles.detailsRow}>
-                                <View style={styles.detailItem}>
-                                    <Text style={styles.label}>Initial Stock</Text>
-                                    <Text style={styles.value}>{initial} Barrels</Text>
-                                </View>
-                                <View style={styles.detailItem}>
-                                    <Text style={styles.label}>Remaining:</Text>
-                                    <Text style={[
-                                        styles.count, 
-                                        { color: remaining < 5 ? '#ef4444' : '#10b981' }
-                                    ]}>
-                                        {remaining} Barrels
-                                    </Text> 
-                                </View>
+                            <View style={styles.summaryBox}>
+                                <Text style={styles.totalLabel}>Total Remaining: </Text>
+                                <Text style={[styles.mainCount, { color: remaining < 5 ? '#ef4444' : '#10b981' }]}>
+                                    {remaining} Barrels
+                                </Text>
                             </View>
+
+                            <Text style={styles.batchHeader}>Purchase History (Batches):</Text>
+                            {(item.batches || []).length === 0 ? (
+                                <Text style={styles.noBatchesText}>No stock added yet.</Text>
+                            ) : (
+                                item.batches.map((batch) => (
+                                    <View key={batch.id} style={styles.batchRow}>
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                            <Ionicons name="calendar-outline" size={14} color="#94a3b8" />
+                                            <Text style={styles.batchDate}>{batch.date}</Text>
+                                        </View>
+                                        
+                                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 15 }}>
+                                            <Text style={styles.batchAmount}>+{batch.amount} Barrels</Text>
+                                            
+                                            {/* DELETE BATCH BUTTON */}
+                                            <TouchableOpacity onPress={() => deleteBatch(item.name, batch.id)}>
+                                                <Ionicons name="trash-outline" size={16} color="#ef4444" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    </View>
+                                ))
+                            )}
 
                         <TouchableOpacity 
                             style={styles.restockBtn} 
@@ -229,5 +278,49 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: '#bfdbfe',
     },
-    restockText: { color: '#1e3a8a', fontWeight: 'bold' }
+    restockText: { color: '#1e3a8a', fontWeight: 'bold' },
+    summaryBox: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    marginVertical: 10,
+    },
+    mainCount: {
+        fontSize: 22,
+        fontWeight: '800',
+    },
+    totalLabel: {
+        fontSize: 14,
+        color: '#64748b'
+    },
+    batchHeader: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#94a3b8',
+        textTransform: 'uppercase',
+        marginTop: 10,
+        marginBottom: 5,
+    },
+    batchRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 8, // Increased padding for easier tapping
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+    alignItems: 'center'
+    },
+    noBatchesText: {
+        fontSize: 12,
+        color: '#94a3b8',
+        fontStyle: 'italic',
+        marginBottom: 10
+    },
+    batchDate: {
+        fontSize: 14,
+        color: '#475569',
+    },
+    batchAmount: {
+        fontSize: 14,
+        fontWeight: '700',
+        color: '#1e3a8a',
+    },
 });
